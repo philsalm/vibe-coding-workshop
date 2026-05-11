@@ -22,6 +22,7 @@ If the user's prompt asks you to build a Databricks App matching these condition
 - **MUST** create and deploy the app via `WorkspaceClient.apps.*` SDK methods or the REST API at `/api/2.0/apps/...`. **Do NOT use the `manage_app` MCP tool** — it errors with `'str' object has no attribute 'value'` on `create_or_update`, and it does not accept `user_api_scopes` or `resources` parameters even when it works.
 - **MUST** authenticate SQL connections using OBO: read the user's token from the `x-forwarded-access-token` header per request and pass it as `access_token` to `sql.connect()`. Fall back to the service principal (via `Config().authenticate`) only when the header is missing.
 - **NEVER** read `DATABRICKS_TOKEN` from the environment — that variable is not set in the Databricks Apps runtime. The SDK's `Config()` auto-detects the SP's OAuth M2M credentials from `DATABRICKS_CLIENT_ID` + `DATABRICKS_CLIENT_SECRET` automatically.
+- **MUST** `CREATE SCHEMA IF NOT EXISTS <catalog>.<personal-schema>` defensively before the first INSERT to a user's personal schema. Participants may forget the manual schema-create step from the workshop setup; the failure mode (`[SCHEMA_NOT_FOUND]` from any write endpoint) is opaque from the UI. Idempotent, cheap, and self-heals.
 
 ---
 
