@@ -18,56 +18,6 @@
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## Section 0 — Local-machine prerequisites
-# MAGIC
-# MAGIC Do these on your **laptop** before running any cells in this notebook. They prepare you to deploy the shared Visual Builder App in Section 2.
-# MAGIC
-# MAGIC ### 0a — Tools you need
-# MAGIC
-# MAGIC | Tool | Check | Install |
-# MAGIC |------|-------|---------|
-# MAGIC | Databricks CLI v0.287.0+ | `databricks --version` | [docs.databricks.com/dev-tools/cli/install](https://docs.databricks.com/aws/en/dev-tools/cli/install) |
-# MAGIC | Node.js 20+ | `node --version` | [nodejs.org](https://nodejs.org) |
-# MAGIC | `uv` package manager | `uv --version` | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
-# MAGIC | `terraform` (any 1.5.x+) | `terraform --version` | [developer.hashicorp.com/terraform/install](https://developer.hashicorp.com/terraform/install) |
-# MAGIC | CLI profile for this workspace | `databricks auth profiles` | `databricks auth login --host <your-workspace-url>` |
-# MAGIC
-# MAGIC ### 0b — Terraform workaround for bundle deploys
-# MAGIC
-# MAGIC The Databricks CLI's bundle commands download a pinned Terraform binary, and the upstream HashiCorp signing key has expired — so the download fails with `error downloading Terraform: unable to verify checksums signature: openpgp: key expired`. Point the CLI at your local Terraform install instead by exporting two env vars **before** running the deploy script:
-# MAGIC
-# MAGIC ```bash
-# MAGIC export DATABRICKS_TF_EXEC_PATH="$(which terraform)"
-# MAGIC export DATABRICKS_TF_VERSION="$(terraform version -json | python3 -c 'import sys,json; print(json.load(sys.stdin)["terraform_version"])')"
-# MAGIC ```
-# MAGIC
-# MAGIC Add those to your shell's rc file if you'll deploy frequently.
-# MAGIC
-# MAGIC ### 0c — Patch the Builder App before deploying
-# MAGIC
-# MAGIC There is a known async-handler bug in the upstream `databricks-solutions/ai-dev-kit` Builder App that causes MCP tool calls to silently return coroutine-object reprs instead of real results. With the bug in place, the agent stalls on the first non-trivial task. **Tracking PR:** [databricks-solutions/ai-dev-kit#526](https://github.com/databricks-solutions/ai-dev-kit/pull/526) — drop this patch step once it merges.
-# MAGIC
-# MAGIC Apply the workshop's bundled patch before deploying:
-# MAGIC
-# MAGIC ```bash
-# MAGIC # Clone the upstream repo
-# MAGIC git clone https://github.com/databricks-solutions/ai-dev-kit.git
-# MAGIC cd ai-dev-kit
-# MAGIC
-# MAGIC # Apply the patch from the workshop repo
-# MAGIC curl -sSL https://raw.githubusercontent.com/philsalm/vibe-coding-workshop/main/patches/fix-async-mcp-tool-execution.patch | git apply
-# MAGIC
-# MAGIC # Verify it applied
-# MAGIC git diff --stat
-# MAGIC ```
-# MAGIC
-# MAGIC You should see `databricks-builder-app/server/services/databricks_tools.py | 24 ++++++++++++++++++------`.
-# MAGIC
-# MAGIC ---
-
-# COMMAND ----------
-
-# MAGIC %md
 # MAGIC ## Configuration
 # MAGIC
 # MAGIC Set the widgets at the top of the notebook before running any cells.
