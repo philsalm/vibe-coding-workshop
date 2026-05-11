@@ -238,6 +238,27 @@ return {
 }
 ```
 
+### SQL parameter binding — use `?`, not `%s`
+
+The `databricks-sql-connector` uses DBAPI 2.0 `paramstyle="qmark"` (positional `?` placeholders), NOT the `%s` placeholders common in psycopg2 / mysql-connector. Use `?` everywhere:
+
+```python
+# CORRECT
+cur.execute(
+    "SELECT * FROM care_gaps WHERE mrn = ? ORDER BY due_date",
+    (mrn,),
+)
+
+# WRONG — raises "It looks like this query may contain un-named query
+# markers like %s. This format is not supported when use_inline_params=False"
+cur.execute(
+    "SELECT * FROM care_gaps WHERE mrn = %s ORDER BY due_date",
+    (mrn,),
+)
+```
+
+This applies to every endpoint that takes a parameter — patient detail, filtered list queries, anything with a `WHERE x = ?` clause. Pagination with `LIMIT ? OFFSET ?` follows the same pattern.
+
 ---
 
 ## Step 6 — Verify
