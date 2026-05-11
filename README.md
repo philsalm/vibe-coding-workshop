@@ -6,8 +6,9 @@ A 90-minute hands-on workshop for healthcare provider teams. Participants vibe-c
 
 | Path | Purpose |
 |------|---------|
-| `setup_workshop.py` | Databricks notebook the workshop admin runs once before the workshop. Generates synthetic data, opens read access to participants, deploys the shared Builder App, grants permissions. |
-| `patches/fix-async-mcp-tool-execution.patch` | Pre-deploy patch for `databricks-solutions/ai-dev-kit` that fixes an async MCP-tool execution bug. Tracking PR: [ai-dev-kit#526](https://github.com/databricks-solutions/ai-dev-kit/pull/526). Drop once merged. |
+| `setup_workshop.py` | Databricks notebook the workshop admin runs once before the workshop. Generates synthetic data, opens read access to participants, grants permissions. |
+| `VBuilder_patch.md` | Laptop-side instructions for patching and deploying the shared Visual Builder App before the workshop. Tools list + Terraform workaround + patch + deploy steps. |
+| `patches/fix-async-mcp-tool-execution.patch` | The actual patch file referenced by `VBuilder_patch.md`. Tracking PR: [ai-dev-kit#526](https://github.com/databricks-solutions/ai-dev-kit/pull/526). Drop once merged. |
 
 ## Admin setup
 
