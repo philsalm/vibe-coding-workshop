@@ -6,9 +6,11 @@ A 90-minute hands-on workshop for healthcare provider teams. Participants vibe-c
 
 | Path | Purpose |
 |------|---------|
+| `PARTICIPANT_GUIDE.md` | The hands-on guide participants follow during the workshop. Three paths (Builder App / own agent / choose your own), Module 1 + Module 2 prompts, troubleshooting, take-it-further extensions. Mirrored from the shared Google Doc. |
 | `setup_workshop.py` | Databricks notebook the workshop admin runs once before the workshop. Generates synthetic data, opens read access to participants, grants permissions. |
 | `VBuilder_patch.md` | Laptop-side instructions for patching and deploying the shared Visual Builder App before the workshop. Tools list + Terraform workaround + patch + deploy steps. |
 | `patches/fix-async-mcp-tool-execution.patch` | The actual patch file referenced by `VBuilder_patch.md`. Tracking PR: [ai-dev-kit#526](https://github.com/databricks-solutions/ai-dev-kit/pull/526). Drop once merged. |
+| `skills/workshop-app-recipe/SKILL.md` | The Claude Code skill the Builder App loads to carry the plumbing patterns (OBO, scopes, resource binding, deployment). Copied into `ai-dev-kit/databricks-skills/workshop-app-recipe/` before deploying the Builder App. |
 
 ## Admin setup
 
