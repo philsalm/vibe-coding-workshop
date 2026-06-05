@@ -2,7 +2,9 @@
 
 # Healthcare Vibe Coding Workshop — Hands-On Content
 
-A 50-minute hands-on session in which you build a **Care Gap Outreach** Databricks App. You can follow the scripted prompts below using either the shared Visual Builder App or your own coding agent (Claude Code / Cursor + ai-dev-kit), or go off-script and build something of your own using the synthetic data we've prepared.
+A 50-minute hands-on session in which you build a **Care Gap Outreach** Databricks App. You can follow the scripted prompts below using either the shared Visual Builder App or **your own coding agent — launched through `ucode`** so it runs against **Unity AI Gateway** (no API keys, governed and observable) — or go off-script and build something of your own using the synthetic data we've prepared.
+
+> **`ucode`** is Databricks' coding-agent launcher. One command (`ucode <agent>`) runs Codex, Claude Code, Gemini CLI, OpenCode, Copilot CLI, or Pi through your workspace's Unity AI Gateway: OAuth with your workspace credentials, **no API keys or tokens to manage**, and every request tracked in the gateway usage dashboard. Pick whichever agent you like — this workshop is agent-agnostic.
 
 ## What you'll build
 
@@ -18,19 +20,20 @@ A 50-minute hands-on session in which you build a **Care Gap Outreach** Databric
 | Path | Tool | Setup time | Good for |
 |------|------|------------|----------|
 | **A — Visual Builder App** | The shared app at the URL the admin sent | 0 min | First-timers, zero local setup, focus on prompting |
-| **B — Your own coding agent** | Claude Code (or Cursor) + ai-dev-kit on your laptop | ~10 min during workshop | Familiar dev environment, more control over file edits |
+| **B — Your own agent via `ucode`** | `uv tool install … ucode` → `ucode <agent>` (Codex / Claude / Gemini / OpenCode / Copilot / Pi) on your laptop | ~5–10 min during workshop | Your own environment + agent of choice, governed through Unity AI Gateway, no API keys |
 | **C — Choose your own** | Anything you want | varies | You already have a healthcare app idea — use the shared data and your personal schema and build it |
 
-The prompts below are written so they work in both Path A and Path B with no changes. Path C participants are welcome to take what they want.
+The prompts below are written so they work in both Path A and Path B with no changes, **regardless of which agent you pick in `ucode`**. Path C participants are welcome to take what they want.
 
 ## Schedule
 
 | Time | Block |
 |------|-------|
-| 0:00–0:05 | Setup — choose your path, create your personal schema, Path B starts install |
-| 0:05–0:30 | **Module 1** — Build the care gap outreach app (~25 min) |
-| 0:30–0:45 | **Module 2** — Add per-user write state with Delta tables (~15 min) |
-| 0:45–0:50 | Buffer + Q&A |
+| 0:00–0:05 | Setup — choose your path; Path B installs `ucode` and launches an agent |
+| 0:05–0:28 | **Module 1** — Build the care gap outreach app (~23 min) |
+| 0:28–0:43 | **Module 2** — Add per-user write state with Delta tables (~15 min) |
+| 0:43–0:48 | **Wrap-up** — `ucode usage` + the AI Gateway dashboard: what did your build cost? (~5 min) |
+| 0:48–0:50 | Q&A |
 
 # Setup (5 min)
 
@@ -53,29 +56,30 @@ You should see a breakdown of care gaps by HEDIS-style measure (BCS, COL, CDC-A1
 
 Open the URL the admin shared in the workshop logistics email. You should see the Builder App's chat interface. Click **New project** and give it a name like `care-gap-outreach`. You're ready to paste prompts.
 
-## Step 2 (Path B only) — Install your tooling
+## Step 2 (Path B only) — Install `ucode` and launch your agent
 
-You have ~10 minutes; you'll lose some build time later but it's the only way to use your own environment.
+You have ~5–10 minutes. `ucode` runs your coding agent through Unity AI Gateway, so there are **no API keys or tokens to set** — it authenticates with your workspace over OAuth on first launch.
 
 ```bash
-# 1. Install Claude Code if you don't have it. See go/buildwithai for the full guide.
-#    Verify with:
-claude --version
+# 1. Install ucode (needs Python 3.12+ and uv — https://docs.astral.sh/uv).
+uv tool install git+https://github.com/databricks/ucode
 
-# 2. (Optional) Route Claude Code through the Databricks-hosted Claude endpoint so
-#    every model call stays inside this workspace's network/audit. Set in your
-#    shell rc or this session:
-export ANTHROPIC_BASE_URL="<your-workspace-url>/serving-endpoints/databricks-claude-sonnet-4"
-export ANTHROPIC_AUTH_TOKEN="<your-workspace-PAT>"
-
-# 3. Install ai-dev-kit and initialize an APX project in a new empty directory:
+# 2. Scaffold the app project (ai-dev-kit is agent-neutral and provides the app template):
 mkdir care-gap-outreach && cd care-gap-outreach
-pip install ai-dev-kit
-apx init
+pip install ai-dev-kit && apx init
 
-# 4. Open Claude Code in that directory:
-claude
+# 3. (Optional) wire Databricks MCP servers — SQL warehouse, Unity Catalog functions —
+#    into your agent so it can query/act against the workspace directly:
+ucode configure mcp
+
+# 4. Launch the agent of your choice. First launch prompts for your workspace URL and
+#    runs OAuth, then writes that agent's config and drops you into it:
+ucode claude      # or: ucode codex | ucode gemini | ucode opencode | ucode copilot | ucode pi
 ```
+
+That's it — no `ANTHROPIC_BASE_URL`, no PAT. Every model call is routed through the gateway and shows up in `ucode usage` (we'll look at that in the wrap-up). `ucode status` shows what's configured; `ucode revert` restores your original agent config files afterward.
+
+**The app recipe.** The prompts tell your agent to follow the `workshop-app-recipe` (the OBO / scopes / resource-binding / deployment plumbing). The Builder App and `ucode claude` load it as a Claude skill automatically. With any other agent, clone this workshop repo and **attach or paste `skills/workshop-app-recipe/SKILL.md` as context** when you start — then the same prompts work unchanged.
 
 You're ready to paste prompts.
 
@@ -97,14 +101,16 @@ Databricks Apps give you two ways to authenticate to data: the app's service pri
 
 ## The prompt
 
-Replace `<CATALOG>` with the catalog name from the admin's logistics email, then paste this into the Builder App chat (Path A) or Claude Code (Path B).
+Replace `<CATALOG>` with the catalog name from the admin's logistics email, then paste this into the Builder App chat (Path A) or your `ucode` agent (Path B). It's the same prompt either way.
 
 ```
 Build a Databricks App named `care-gap-outreach`: Python FastAPI backend +
 React frontend, served as a single deployable Databricks App.
 
-Load the `workshop-app-recipe` skill first and follow it exactly for the app's
-plumbing (authorization, scopes, resource binding, deployment, response shape).
+Follow the `workshop-app-recipe` exactly for the app's plumbing (authorization,
+scopes, resource binding, deployment, response shape). It loads automatically as
+a skill in the Builder App and `ucode claude`; for other agents, use the
+`SKILL.md` you attached at setup.
 
 The app helps a care coordination team work through open care gaps and contact
 patients to close them.
@@ -188,7 +194,7 @@ Now add app state to care-gap-outreach using Delta tables. Same OBO SQL
 warehouse connection from Module 1 handles the reads AND the writes — no
 new auth or provisioning.
 
-Continue to follow the `workshop-app-recipe` skill (OBO connection helper,
+Continue to follow the `workshop-app-recipe` (OBO connection helper,
 response envelope, `?` parameter binding, never DATABRICKS_TOKEN).
 
 CREATE A SCHEMA FOR THE APP'S STATE
@@ -273,6 +279,31 @@ Redeploy and give me the URL.
 
 **Add a personal notes column.** "Add a `notes_private` STRING column to `outreach_log` that's only visible to the coordinator who wrote the row — modify the GET /api/outreach handler to return `notes_private` only for rows where the row's `user_email` matches the requesting user, and null it out for everyone else's rows."
 
+# Wrap-up — what did your build cost? (5 min, Path B)
+
+You just vibe-coded a working app. Because Path B ran your agent through `ucode` → Unity AI Gateway, all of that token usage was **governed and tracked** — no personal API key, and the spend is attributable to you and your group. Let's look at it.
+
+## Your usage from the CLI
+
+```bash
+ucode usage
+```
+
+This prints your Unity AI Gateway usage summary for the last 7 days — requests and token spend across whatever agent(s) you ran. Compare notes with the person next to you who picked a different agent.
+
+## The admin / governance view
+
+Your workshop admin can open the **AI Gateway dashboard** (AI Gateway page → **View dashboard**) to see usage, spend, and metrics **across every participant and agent** — broken down at the endpoint, user, or group level. That's the enterprise story: any coding agent your teams use (Codex, Claude, Gemini, …) routed through one governed gateway, with rate limits, permissions, and one invoice — instead of scattered personal API keys with no visibility.
+
+## Why this matters
+
+| Without a gateway | With `ucode` + Unity AI Gateway |
+|---|---|
+| Each dev brings their own API key | OAuth with workspace identity; no keys |
+| Spend is invisible / un-attributable | Usage tracked per user, group, endpoint |
+| No central rate limits or model governance | Limits + model permissions set centrally |
+| Agent choice fragments tooling | Any supported agent, one governed path |
+
 # Take it further (after the workshop)
 
 These don't fit in the 50 minutes but make great take-home extensions. Each is a single prompt you can paste into your agent after the workshop.
@@ -340,6 +371,12 @@ Confirm the app behavior reflects the policies with no code changes.
 ```
 
 # Troubleshooting
+
+**`ucode` install fails / `ucode: command not found`.** `ucode` needs Python 3.12+ and `uv`. Install `uv` first (https://docs.astral.sh/uv), then `uv tool install git+https://github.com/databricks/ucode`. If the command isn't found after install, make sure `uv`'s tool bin is on your `PATH` (`uv tool update-shell`, then restart your shell).
+
+**First `ucode <agent>` launch can't authenticate / 403.** On first launch `ucode` asks for your workspace URL and runs OAuth in the browser — complete that flow. A 403 on model calls usually means the **Unity AI Gateway preview isn't enabled** for the account, or your user/group lacks access to the endpoint — flag it to the admin (this is an account-level prerequisite, not something you can fix locally). Run `ucode status` to see the workspace, base URLs, and selected models it's using.
+
+**My agent's existing config got changed.** Expected — `ucode` writes each agent's config file (e.g. `~/.claude/settings.json`, `~/.codex/config.toml`) and backs up the original first. Run `ucode revert` to restore your pre-workshop config.
 
 **Blank screen — browser console shows `/api/care-gaps` returning 500.** The most common cause is a missing OAuth scope. Check the app's configured scopes:
 

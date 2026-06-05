@@ -14,6 +14,23 @@
 # MAGIC Plan ~30 minutes, including the Builder App deploy. You can run Section 1 immediately; Sections 2 and 3 depend on the Builder App being deployed first.
 # MAGIC
 # MAGIC ---
+# MAGIC
+# MAGIC ## ⚠️ Prerequisite for the `ucode` participant path — Unity AI Gateway (do this first)
+# MAGIC
+# MAGIC Participants who use their own coding agent (Path B) launch it with **`ucode`**, which routes the agent
+# MAGIC through **Unity AI Gateway**. This is a **Beta** feature with account-level prerequisites that this
+# MAGIC notebook **cannot** set for you — an **account admin** must confirm them before the workshop:
+# MAGIC
+# MAGIC 1. **Enable the Unity AI Gateway preview** from the account console **Previews** page.
+# MAGIC 2. The workshop workspace is **Unity Catalog–enabled** and in a [Unity AI Gateway supported region](https://learn.microsoft.com/en-us/azure/databricks/resources/feature-region-support#model-serving-features-availability).
+# MAGIC 3. The `participants_group` has access to the gateway endpoint(s) the agents will use.
+# MAGIC 4. (Optional) Create the OpenTelemetry UC tables so agent telemetry lands in Unity Catalog for the dashboard. See the
+# MAGIC    [coding agent integration docs](https://learn.microsoft.com/en-us/azure/databricks/ai-gateway/coding-agent-integration-beta).
+# MAGIC
+# MAGIC If the gateway is not enabled, `ucode` agents will fail to authenticate. Smoke-test `ucode <agent>` against
+# MAGIC this workspace yourself before the session. Path A (Visual Builder App) does **not** depend on this.
+# MAGIC
+# MAGIC ---
 
 # COMMAND ----------
 
