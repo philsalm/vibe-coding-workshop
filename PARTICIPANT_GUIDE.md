@@ -36,18 +36,18 @@ The prompts below are written so they work in both Path A and Path B with no cha
 
 ## Step 1 — Confirm you can query the shared data
 
-The workshop's synthetic data lives in a shared catalog (the workshop admin will tell you the exact catalog name in their logistics email — call it `<CATALOG>` below). Read access is open to all workshop participants. Module 2 will have your app create its own write schema later — nothing to set up by hand.
+The workshop's synthetic data lives in a shared `mvp_quality_workshop` schema (the workshop admin will tell you the exact catalog name in their logistics email — call it `<CATALOG>` below). This is the **same governed dataset** a metric view reads in the companion Metric Views workshop — one source of truth, used here for an operational app. Read access is open to all workshop participants. Module 2 will have your app create its own write schema later — nothing to set up by hand.
 
 Open the SQL editor in your workspace and run:
 
 ```sql
 SELECT measure, priority, COUNT(*) AS gap_count
-FROM <CATALOG>.care_gaps_demo.care_gaps
+FROM <CATALOG>.mvp_quality_workshop.care_gaps
 GROUP BY measure, priority
 ORDER BY measure, priority;
 ```
 
-You should see a breakdown of care gaps by HEDIS-style measure (BCS, COL, CDC-A1C, DEE, FluVax, CBP) and priority (overdue, due_soon, preventive). If this errors with a permissions issue, raise your hand — the admin's setup may not have completed.
+You should see a breakdown of open care gaps by HEDIS-style measure (BCS, COL, CBP, CDC, CIS, WCV, FUH) and priority (overdue, due_soon, preventive). If this errors with a permissions issue, raise your hand — the admin's setup may not have completed.
 
 ## Step 2 (Path A only) — Open the Builder App
 
@@ -110,11 +110,11 @@ The app helps a care coordination team work through open care gaps and contact
 patients to close them.
 
 DATA SOURCE
-Two Unity Catalog tables, joined on MRN. Query them via a serverless SQL warehouse.
+Two Unity Catalog views, joined on MRN. Query them via a serverless SQL warehouse.
 
-- `<CATALOG>.care_gaps_demo.care_gaps` — gap_id, mrn, measure,
+- `<CATALOG>.mvp_quality_workshop.care_gaps` — gap_id, mrn, measure,
   measure_description, due_date, last_completed_date, priority, source
-- `<CATALOG>.care_gaps_demo.patients` — mrn, first_name, last_name,
+- `<CATALOG>.mvp_quality_workshop.patients` — mrn, first_name, last_name,
   age, sex, primary_pcp, insurance_plan, preferred_contact, phone, email,
   last_visit_date
 
@@ -361,4 +361,4 @@ Then open the app URL in an incognito window (or sign out + sign back in) to get
 
 **Writes fail with `[SCHEMA_NOT_FOUND]`.** The agent skipped the `CREATE SCHEMA` step or used a different schema name than the one in your tables. Confirm you replaced every `<YOUR_USERNAME>` placeholder with the same value before pasting. If you did, re-prompt: "Run `CREATE SCHEMA IF NOT EXISTS <CATALOG>.workshop_<YOUR_USERNAME>` before any INSERT, using the exact same schema name as in the table references."
 
-**Genie Code refuses to use my catalog.** Make sure you're querying with `<CATALOG>.care_gaps_demo.<table>` — fully qualified. The shared synthetic schema is read-only.
+**Genie Code refuses to use my catalog.** Make sure you're querying with `<CATALOG>.mvp_quality_workshop.<view>` — fully qualified. The shared synthetic schema is read-only.
