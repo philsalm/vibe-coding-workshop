@@ -1,8 +1,8 @@
-# Patching the Visual Builder App before deploying
+# Deploying the Visual Builder App
 
-The upstream `databricks-solutions/ai-dev-kit` Builder App has a known async-handler bug that causes MCP tool calls to silently return coroutine-object reprs instead of real results. With the bug in place, the agent stalls on the first non-trivial task. This doc walks through applying the workshop's bundled patch.
+One shared Visual Builder App from [`databricks-solutions/ai-dev-kit`](https://github.com/databricks-solutions/ai-dev-kit#visual-builder-app), deployed by the admin and used by every workshop participant (Path A). Deploy it from your laptop before the workshop.
 
-**Tracking PR:** [databricks-solutions/ai-dev-kit#526](https://github.com/databricks-solutions/ai-dev-kit/pull/526) — drop this whole doc once it merges.
+> **No patch needed.** An async MCP-tool-execution bug used to require a workshop hotfix; that fix is now upstream on ai-dev-kit's default branch, so a fresh clone already includes it. (The fix landed independently of [PR #526](https://github.com/databricks-solutions/ai-dev-kit/pull/526) — `databricks_tools.py` now detects a returned coroutine and awaits it.)
 
 ## Prerequisites
 
@@ -27,32 +27,14 @@ export DATABRICKS_TF_VERSION="$(terraform version -json | python3 -c 'import sys
 
 Add those to your shell's rc file if you'll deploy frequently.
 
-## Apply the patch
-
-```bash
-# Clone the upstream repo
-git clone https://github.com/databricks-solutions/ai-dev-kit.git
-cd ai-dev-kit
-
-# Apply the patch from the workshop repo
-curl -sSL https://raw.githubusercontent.com/philsalm/vibe-coding-workshop/main/patches/fix-async-mcp-tool-execution.patch | git apply
-
-# Verify it applied
-git diff --stat
-```
-
-You should see:
-
-```
-databricks-builder-app/server/services/databricks_tools.py | 24 ++++++++++++++++++------
-1 file changed, 20 insertions(+), 4 deletions(-)
-```
-
 ## Deploy
 
 ```bash
-cd databricks-builder-app
+git clone https://github.com/databricks-solutions/ai-dev-kit.git
+cd ai-dev-kit/databricks-builder-app
 ./scripts/deploy.sh <your-app-name> --profile <your-cli-profile>
 ```
 
-The first deploy takes 5–10 minutes (Lakebase provisioning + frontend build + skills upload + app start).
+The first deploy takes 5–10 minutes (Lakebase provisioning + frontend build + skills upload + app start). When it finishes it prints the app URL.
+
+Then continue with **Section 2** of `setup_workshop.py` to bind a SQL warehouse to the app and grant participants `CAN_USE`.

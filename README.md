@@ -10,8 +10,7 @@ The app is built on the **same governed synthetic dataset** as the companion [Me
 |------|---------|
 | `PARTICIPANT_GUIDE.md` | The hands-on guide participants follow during the workshop. Three paths (Builder App / own agent / choose your own), Module 1 + Module 2 prompts, troubleshooting, take-it-further extensions. Mirrored from the shared Google Doc. |
 | `setup_workshop.py` | Databricks notebook the workshop admin runs once before the workshop. Verifies the shared `mvp_quality_workshop` dataset, (re)creates the operational `patients` + `care_gaps` views, opens read access to participants, grants permissions, and guides the Builder App deploy. |
-| `VBuilder_patch.md` | Laptop-side instructions for patching and deploying the shared Visual Builder App before the workshop. Tools list + Terraform workaround + patch + deploy steps. |
-| `patches/fix-async-mcp-tool-execution.patch` | The actual patch file referenced by `VBuilder_patch.md`. Tracking PR: [ai-dev-kit#526](https://github.com/databricks-solutions/ai-dev-kit/pull/526). Drop once merged. |
+| `DEPLOY_BUILDER_APP.md` | Laptop-side instructions for deploying the shared Visual Builder App before the workshop. Tools list + Terraform workaround + deploy steps. (The async-handler fix is now upstream — no patch step.) |
 | `skills/workshop-app-recipe/SKILL.md` | The Claude Code skill the Builder App loads to carry the plumbing patterns (OBO, scopes, resource binding, deployment). Copied into `ai-dev-kit/databricks-skills/workshop-app-recipe/` before deploying the Builder App. |
 
 ## Admin setup
@@ -20,7 +19,7 @@ The app is built on the **same governed synthetic dataset** as the companion [Me
 2. Import `setup_workshop.py` into your Databricks workspace.
 3. Set the widgets at the top: `catalog`, `schema` (default `mvp_quality_workshop`), `sql_warehouse_name`, `participants_group`.
 4. Run Section 1 to verify the shared dataset, (re)create the operational views, and grant participant access.
-5. Follow `VBuilder_patch.md` + Section 2 to deploy the Builder App and bind a warehouse to it.
+5. Follow `DEPLOY_BUILDER_APP.md` + Section 2 to deploy the Builder App and bind a warehouse to it.
 6. Run Section 3 to grant the Builder App's service principal access to your data.
 7. Run Section 4 to smoke-test the Builder App end-to-end.
 
