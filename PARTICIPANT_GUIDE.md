@@ -57,27 +57,31 @@ Open the URL the admin shared in the workshop logistics email. You should see th
 
 You have ~10 minutes; you'll lose some build time later but it's the only way to use your own environment.
 
+We install Claude Code with **`ucode`** — Databricks' Unity AI Gateway Coding CLI. `ucode` installs and configures the agent for you, authenticates to this workspace over **OAuth (no API keys or PATs)**, and routes every model call to the workspace's **Databricks-hosted Claude endpoint** so usage is governed and tracked centrally. ([Docs](https://learn.microsoft.com/en-us/azure/databricks/ai-gateway/coding-agent-integration-beta).)
+
 ```bash
-# 1. Install Claude Code if you don't have it. See go/buildwithai for the full guide.
-#    Verify with:
-claude --version
+# 1. Prerequisites: Python 3.12+, uv, and Node/npm (ucode uses npm to install the
+#    Claude Code CLI for you). Install uv if you don't have it:
+curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# 2. (Optional) Route Claude Code through the Databricks-hosted Claude endpoint so
-#    every model call stays inside this workspace's network/audit. Set in your
-#    shell rc or this session:
-export ANTHROPIC_BASE_URL="<your-workspace-url>/serving-endpoints/databricks-claude-sonnet-4"
-export ANTHROPIC_AUTH_TOKEN="<your-workspace-PAT>"
+# 2. Install ucode:
+uv tool install git+https://github.com/databricks/ucode
 
-# 3. Install ai-dev-kit and initialize an APX project in a new empty directory:
+# 3. Create an empty project directory and initialize an APX project:
 mkdir care-gap-outreach && cd care-gap-outreach
 pip install ai-dev-kit
 apx init
 
-# 4. Open Claude Code in that directory:
-claude
+# 4. Launch Claude Code through ucode. The FIRST run prompts for your workspace
+#    URL and opens an OAuth login in your browser, then installs (if needed) and
+#    configures Claude Code to use this workspace's Databricks Claude endpoint.
+#    Later runs go straight to Claude Code.
+ucode claude
 ```
 
 You're ready to paste prompts.
+
+> **Note.** `ucode` is in Beta and requires the **Unity AI Gateway** preview to be enabled on your account (the workshop admin handles this) plus a Unity Catalog–enabled workspace in a [supported region](https://learn.microsoft.com/en-us/azure/databricks/resources/feature-region-support). If `ucode claude` fails to authenticate with a 403, the workspace isn't enrolled yet — raise your hand. You can confirm routing later with `ucode usage` (your Unity AI Gateway usage for the last 7 days).
 
 ## Step 2 (Path C only) — Skim, then go
 
