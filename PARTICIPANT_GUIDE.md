@@ -155,15 +155,32 @@ BACKEND RESPONSE CONTRACT (prevents empty-table / "Cannot read undefined")
   `{ items: [] }` so it never crashes on undefined.
 
 FRONTEND & STATIC SERVING (prevents deploy-succeeds-but-blank-screen)
-- Do NOT transpile in the browser: no <script type="text/babel"> and no
-  Babel-standalone from a CDN. If Babel fails to load or transpile, the page
-  renders blank with no console error. Build the single-page UI as a
-  self-contained index.html using React + ReactDOM via ESM imports plus `htm`
-  for JSX-like syntax — no build step, no transpiler.
+- Build the single-page UI as a self-contained index.html — no build step, no
+  transpiler. Do NOT transpile in the browser: no <script type="text/babel">
+  and no Babel-standalone from a CDN (if Babel fails to load, the page renders
+  blank with no console error).
+- Use EXACTLY this module bootstrap. Importing from `htm/preact` pulls in a
+  SECOND preact instance, so hooks throw on first render and the page goes
+  blank — bind htm to the one preact `h` instead:
+
+    <script type="importmap">{"imports":{
+      "preact":"https://esm.sh/preact@10.19.3",
+      "preact/hooks":"https://esm.sh/preact@10.19.3/hooks",
+      "htm":"https://esm.sh/htm@3.1.1"
+    }}</script>
+    <script type="module">
+      import { h, render } from 'preact';
+      import { useState, useEffect, useCallback } from 'preact/hooks';
+      import htm from 'htm';
+      const html = htm.bind(h);   // single preact instance — do NOT import htm/preact
+      // ... build the app with html`...` and render(html`<${App}/>`, document.getElementById('app'));
+    </script>
+
+  The HTML body must contain the matching mount node: <div id="app"></div>.
 - Resolve static paths relative to the app file, never the working directory:
-  BASE = pathlib.Path(__file__).resolve().parent; serve BASE / "static" /
-  "index.html" with an absolute path. The Apps container CWD is not guaranteed
-  to be the app dir.
+  BASE = pathlib.Path(__file__).resolve().parent; mount StaticFiles at
+  directory=str(BASE / "static") and serve str(BASE / "static" / "index.html")
+  with FileResponse. The Apps container CWD is not guaranteed to be the app dir.
 - Register every /api/* route BEFORE the catch-all /{full_path:path} SPA route,
   and mount StaticFiles at /static so the catch-all never intercepts API or
   static requests; the catch-all returns index.html only for non-/api,
@@ -192,7 +209,10 @@ UI
    preferred channel highlighted, and a "Log Outreach" button (placeholder —
    we'll wire it up next module).
 
-Deploy and give me the app URL when it's running.
+Deploy, then VERIFY the page actually renders before giving me the URL: load
+the app URL and confirm the table appears and the browser console is clean. A
+blank page with a successful deployment is a frontend module error, not a
+deploy success — fix it before reporting done. Then give me the app URL.
 ```
 
 ## Checkpoint
@@ -235,12 +255,27 @@ If you want to swap in Lakebase later, the API surface stays the same — only t
 Replace `<CATALOG>` and every `<YOUR_USERNAME>` placeholder before pasting. `<YOUR_USERNAME>` is the part of your Databricks email before the `@`, with `.` replaced by `_` (e.g., `jane.doe@org.com` → `jane_doe`).
 
 ```
-Now add app state to care-gap-outreach using Delta tables. Same OBO SQL
-warehouse connection from Module 1 handles the reads AND the writes — no
-new auth or provisioning.
+Now add app state to care-gap-outreach using Delta tables. The same OBO SQL
+warehouse connection from Module 1 handles the reads AND the writes — no new
+auth or provisioning.
 
-Continue to follow the `workshop-app-recipe` skill (OBO connection helper,
-response envelope, `?` parameter binding, never DATABRICKS_TOKEN).
+DON'T REGRESS THE MODULE 1 PLUMBING
+- Reuse the existing OBO get_sql_connection(request) helper for reads AND writes
+  (x-forwarded-access-token, SP fallback; never DATABRICKS_TOKEN).
+- Bind parameters with qmark `?`, never `%s`. Convert cursor rows to dicts.
+- Register the NEW /api/* routes BEFORE the catch-all /{full_path:path} SPA
+  route, or they'll be swallowed and return index.html instead of JSON.
+- Keep __file__-relative static paths (BASE = pathlib.Path(__file__).resolve().
+  parent) for the StaticFiles mount and the index.html FileResponse.
+- Redeploy with the Databricks SDK (`apps.deploy_and_wait`) or REST — NOT the
+  `manage_app` MCP tool.
+
+DON'T REGRESS THE FRONTEND (this is the #1 way Module 2 breaks)
+When you extend index.html for the new modals/history/worklists, keep the SAME
+module bootstrap as Module 1 — no in-browser Babel, and a SINGLE preact
+instance: import { h, render } from 'preact'; hooks from 'preact/hooks'; htm
+from 'htm'; const html = htm.bind(h). Do NOT switch any import to 'htm/preact'
+(it bundles a second preact instance → hooks throw → blank screen).
 
 CREATE A SCHEMA FOR THE APP'S STATE
 
@@ -311,7 +346,11 @@ UI
 - "My Worklists" sidebar lists the user's saved worklists. Click one to
   apply its filters. Each row has a × icon with a confirmation step.
 
-Redeploy and give me the URL.
+Redeploy, then VERIFY the page actually renders before giving me the URL: load
+the app URL and confirm the table AND the new controls appear and the browser
+console is clean. A blank page with a successful deployment is a frontend module
+error (usually a second preact instance) — fix it before reporting done. Then
+give me the URL.
 ```
 
 ## Checkpoint
