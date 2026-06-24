@@ -104,23 +104,70 @@ Databricks Apps give you two ways to authenticate to data: the app's service pri
 Replace `<CATALOG>` with the catalog name from the admin's logistics email, then paste this into the Builder App chat (Path A) or Claude Code (Path B).
 
 ```
-Build a Databricks App named `care-gap-outreach`: Python FastAPI backend +
-React frontend, served as a single deployable Databricks App.
-
-Load the `workshop-app-recipe` skill first and follow it exactly for the app's
-plumbing (authorization, scopes, resource binding, deployment, response shape).
-
-The app helps a care coordination team work through open care gaps and contact
-patients to close them.
+Build and deploy a Databricks App named `care-gap-outreach`: a Python FastAPI
+backend serving a React frontend as a single deployable Databricks App. No
+separate services. The app helps a care coordination team work through open
+care gaps and contact patients to close them.
 
 DATA SOURCE
-Two Unity Catalog views, joined on MRN. Query them via a serverless SQL warehouse.
-
+Two Unity Catalog views, joined on MRN, queried via a serverless SQL warehouse:
 - `<CATALOG>.mvp_quality_workshop.care_gaps` — gap_id, mrn, measure,
   measure_description, due_date, last_completed_date, priority, source
 - `<CATALOG>.mvp_quality_workshop.patients` — mrn, first_name, last_name,
   age, sex, primary_pcp, insurance_plan, preferred_contact, phone, email,
   last_visit_date
+
+AUTHORIZATION — use on-behalf-of-user (OBO) so each user's Unity Catalog
+permissions apply to their own queries:
+- Create the app with `user_api_scopes=["sql"]`. Without this scope the user's
+  OBO token cannot authenticate to the warehouse and every /api/... call returns
+  HTTP 500.
+- In the SQL connection helper, read the user's token from the
+  `x-forwarded-access-token` request header and pass it as `access_token=...`
+  to `sql.connect()`. Fall back to the app service principal (SDK `Config()`
+  credentials_provider) only when that header is missing (local dev).
+- NEVER read DATABRICKS_TOKEN — it is not set in the Apps runtime.
+
+DATABRICKS APPS PLUMBING — non-obvious; follow exactly or the app fails to
+deploy or errors at runtime:
+- Create AND deploy with the Databricks SDK (`WorkspaceClient.apps.
+  create_and_wait` then `deploy_and_wait`) or the REST API at
+  `/api/2.0/apps/...`. Do NOT use the `manage_app` MCP tool — it is broken.
+- At create time, bind a serverless SQL warehouse as an app resource named
+  `sql-warehouse` with CAN_USE, passed in the create call's `resources` field
+  (alongside `user_api_scopes`). List warehouses and pick a RUNNING serverless
+  one if I haven't given an id. Do NOT hardcode the warehouse id — the
+  `app.yaml` `resources:` block alone is NOT sufficient; the binding must be in
+  the create call.
+- In `app.yaml`, inject the warehouse id into env var `DATABRICKS_WAREHOUSE_ID`
+  via `valueFrom: sql-warehouse` (must match the resource name above).
+- Use `databricks-sql-connector`. The connector uses qmark paramstyle: bind
+  with `?`, never `%s`.
+- Convert cursor rows to dicts (dict(zip([c[0] for c in cur.description], row)))
+  before returning — never return raw tuples.
+
+BACKEND RESPONSE CONTRACT (prevents empty-table / "Cannot read undefined")
+- Every list endpoint returns a uniform envelope, never a bare list:
+    {"items": [...], "page": n, "page_size": n, "total": n}   # items always a list
+- The filter-options endpoint returns one key per filter:
+    {"measures": [...], "priorities": [...], "pcps": [...], "insurance_plans": [...]}
+- The frontend always reads `data.items ?? []` and guards a non-ok response with
+  `{ items: [] }` so it never crashes on undefined.
+
+FRONTEND & STATIC SERVING (prevents deploy-succeeds-but-blank-screen)
+- Do NOT transpile in the browser: no <script type="text/babel"> and no
+  Babel-standalone from a CDN. If Babel fails to load or transpile, the page
+  renders blank with no console error. Build the single-page UI as a
+  self-contained index.html using React + ReactDOM via ESM imports plus `htm`
+  for JSX-like syntax — no build step, no transpiler.
+- Resolve static paths relative to the app file, never the working directory:
+  BASE = pathlib.Path(__file__).resolve().parent; serve BASE / "static" /
+  "index.html" with an absolute path. The Apps container CWD is not guaranteed
+  to be the app dir.
+- Register every /api/* route BEFORE the catch-all /{full_path:path} SPA route,
+  and mount StaticFiles at /static so the catch-all never intercepts API or
+  static requests; the catch-all returns index.html only for non-/api,
+  non-/static paths.
 
 UI
 
