@@ -130,9 +130,20 @@ permissions apply to their own queries:
 
 DATABRICKS APPS PLUMBING — non-obvious; follow exactly or the app fails to
 deploy or errors at runtime:
-- Create AND deploy with the Databricks SDK (`WorkspaceClient.apps.
-  create_and_wait` then `deploy_and_wait`) or the REST API at
+- Create AND deploy with the Databricks SDK or the REST API at
   `/api/2.0/apps/...`. Do NOT use the `manage_app` MCP tool — it is broken.
+- Run create and deploy from the LOCAL shell (the `databricks` CLI or local
+  Python), NOT a serverless/remote code-execution tool. App compute cold-start
+  takes minutes and will blow past a serverless job's timeout, so the deploy
+  appears to "hang" and silently does nothing.
+- Do NOT block on `*_and_wait` calls. Create the app, then deploy, then POLL
+  `databricks apps get <name>` in short separate calls until compute is ACTIVE
+  and the deployment is SUCCEEDED. A single long blocking call is what stalls.
+- The clean two-step from the CLI:
+    databricks apps create --json '{"name":"...","user_api_scopes":["sql"],
+      "resources":[{"name":"sql-warehouse","sql_warehouse":{"id":"<wh-id>",
+      "permission":"CAN_USE"}}]}'
+    databricks apps deploy <name> --source-code-path <workspace-path> --mode SNAPSHOT
 - At create time, bind a serverless SQL warehouse as an app resource named
   `sql-warehouse` with CAN_USE, passed in the create call's `resources` field
   (alongside `user_api_scopes`). List warehouses and pick a RUNNING serverless
@@ -267,8 +278,11 @@ DON'T REGRESS THE MODULE 1 PLUMBING
   route, or they'll be swallowed and return index.html instead of JSON.
 - Keep __file__-relative static paths (BASE = pathlib.Path(__file__).resolve().
   parent) for the StaticFiles mount and the index.html FileResponse.
-- Redeploy with the Databricks SDK (`apps.deploy_and_wait`) or REST — NOT the
-  `manage_app` MCP tool.
+- Redeploy from the LOCAL shell (`databricks apps deploy <name> --source-code-
+  path <path> --mode SNAPSHOT`), NOT the `manage_app` MCP tool and NOT a
+  serverless/remote code-execution tool (it times out on app cold-start and
+  appears to hang). Don't block on `*_and_wait`; poll `databricks apps get`
+  until the deployment is SUCCEEDED.
 
 DON'T REGRESS THE FRONTEND (this is the #1 way Module 2 breaks)
 When you extend index.html for the new modals/history/worklists, keep the SAME
